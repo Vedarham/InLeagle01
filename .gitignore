@@ -1,0 +1,44 @@
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Data 
+/data/acts
+/data/cases
+/data/later_docs
+/data/processed
+/data/rbi_documents
+
+/Snips
+
+# Qdrant 
+qdrant_storage/
+collections/
+raft_state.json
+.qdrant_fs_check
+tmp/
+
+# Model cache
+.cache/
+models/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.deleted/
+aliases/
+*.log
+logs/
+.pytest_cache/

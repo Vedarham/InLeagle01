@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InLeagle — Indian Banking Law Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:       #0e0e0e;
+    --paper:     #f7f3ed;
+    --parchment: #ede7db;
+    --sepia:     #c9b99a;
+    --gold:      #b8860b;
+    --gold-lt:   #d4a017;
+    --rust:      #8b3a2a;
+    --sage:      #4a5e52;
+    --muted:     #7a7060;
+    --border:    #d5cabb;
+    --shadow:    rgba(14,14,14,0.08);
+    --chat-w:    720px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 100vh;
+    height: 100vh;
+  }
+  .sidebar {
+    background: var(--ink);
+    color: var(--paper);
+    display: flex;
+    flex-direction: column;
+    padding: 32px 24px;
+    border-right: 1px solid #1e1e1e;
+    overflow-y: auto;
+  }
+
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--gold-lt);
+    margin-bottom: 4px;
+  }
+  .logo span { color: var(--paper); opacity: 0.5; font-weight: 400; }
+
+  .tagline {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sepia);
+    margin-bottom: 36px;
+  }
+
+  .sidebar-section {
+    margin-bottom: 28px;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sepia);
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+
+  .mode-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--paper);
+    opacity: 0.55;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    text-align: left;
+    transition: all 0.18s;
+  }
+  .mode-btn:hover { opacity: 0.85; background: rgba(255,255,255,0.05); }
+  .mode-btn.active {
+    opacity: 1;
+    background: rgba(184,134,11,0.15);
+    border-color: rgba(184,134,11,0.35);
+    color: var(--gold-lt);
+  }
+
+  .mode-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .quick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .quick-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    color: var(--paper);
+    opacity: 0.65;
+    padding: 9px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .quick-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(184,134,11,0.3);
+  }
+
+  .status-row {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--sepia);
+    opacity: 0.7;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4caf50;
+    box-shadow: 0 0 6px #4caf5099;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--paper);
+  }
+
+  .topbar {
+    padding: 20px 32px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--paper);
+    flex-shrink: 0;
+  }
+
+  .topbar-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    opacity: 0.8;
+  }
+
+  .mode-badge {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--parchment);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .mode-badge.legal  { background: rgba(74,94,82,0.1);  color: var(--sage); border-color: rgba(74,94,82,0.25); }
+  .mode-badge.layman { background: rgba(184,134,11,0.1); color: var(--gold); border-color: rgba(184,134,11,0.25); }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    scroll-behavior: smooth;
+  }
+  .welcome {
+    margin: auto;
+    text-align: center;
+    max-width: 480px;
+    padding: 40px 20px;
+  }
+  .welcome-icon {
+    font-size: 42px;
+    margin-bottom: 20px;
+    display: block;
+  }
+  .welcome h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .welcome p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .msg { display: flex; flex-direction: column; max-width: var(--chat-w); }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.bot  { align-self: flex-start; align-items: flex-start; }
+
+  .msg-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  .bubble {
+    padding: 16px 20px;
+    border-radius: 12px;
+    line-height: 1.7;
+    font-size: 14.5px;
+  }
+
+  .msg.user .bubble {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 12px 12px 2px 12px;
+  }
+
+  .msg.bot .bubble {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 2px 12px 12px 12px;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+
+  .bubble strong { font-weight: 600; }
+  .bubble em     { font-style: italic; color: var(--muted); }
+
+  .bubble p        { margin-bottom: 10px; }
+  .bubble p:last-child { margin-bottom: 0; }
+
+  .bubble ol, .bubble ul {
+    padding-left: 20px;
+    margin-bottom: 10px;
+  }
+  .bubble li { margin-bottom: 5px; }
+
+  .citations {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: var(--parchment);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 6px 6px 0;
+    font-size: 12.5px;
+  }
+
+  .citations-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .citation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: var(--ink);
+    opacity: 0.75;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+  }
+  .citation-item::before {
+    content: "§";
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .msg-meta {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+    opacity: 0.6;
+  }
+
+  .typing-indicator .bubble {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 14px 18px;
+    min-width: 70px;
+  }
+  .typing-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--sepia);
+    animation: typing 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing {
+    0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+    30%         { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* ── Input area ── */
+  .input-area {
+    padding: 20px 32px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--paper);
+    flex-shrink: 0;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    max-width: var(--chat-w);
+  }
+
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    min-height: 50px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  textarea:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,134,11,0.1);
+  }
+  textarea::placeholder { color: var(--muted); opacity: 0.6; }
+
+  .send-btn {
+    width: 46px; height: 46px;
+    border-radius: 10px;
+    border: none;
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.18s, transform 0.1s;
+  }
+  .send-btn:hover:not(:disabled) { background: #333; }
+  .send-btn:active:not(:disabled) { transform: scale(0.95); }
+  .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .send-btn svg { width: 18px; height: 18px; }
+
+  .input-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.5;
+    text-align: center;
+  }
+
+  .error-bubble {
+    background: rgba(139,58,42,0.08);
+    border: 1px solid rgba(139,58,42,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--rust);
+    font-size: 13.5px;
+  }
+
+  .messages::-webkit-scrollbar { width: 5px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .answer-text h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 14px 0 6px;
+    color: var(--ink);
+  }
+
+  @media (max-width: 700px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .topbar, .messages, .input-area { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo">InLeagle</div>
+    <div class="tagline">Indian Banking Law Assistant</div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Response Mode</div>
+      <div class="mode-group">
+        <button class="mode-btn active" data-mode="auto" onclick="setMode('auto', this)">
+          <span class="mode-dot"></span> Auto Detect
+        </button>
+        <button class="mode-btn" data-mode="layman" onclick="setMode('layman', this)">
+          <span class="mode-dot"></span> Simple English
+        </button>
+        <button class="mode-btn" data-mode="legal" onclick="setMode('legal', this)">
+          <span class="mode-dot"></span> Legal / Formal
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Quick Questions</div>
+      <div class="quick-list">
+        <button class="quick-btn" onclick="askQuick(this)">Bank sent notice to take my property. What can I do?</button>
+        <button class="quick-btn" onclick="askQuick(this)">Cheque bounce case filed against me. What happens next?</button>
+        <button class="quick-btn" onclick="askQuick(this)">Loan app is calling my family. Is that legal?</button>
+        <button class="quick-btn" onclick="askQuick(this)">I am a personal guarantor. Company went bankrupt. Am I liable?</button>
+        <button class="quick-btn" onclick="askQuick(this)">How do I complain against my bank to RBI?</button>
+        <button class="quick-btn" onclick="askQuick(this)">Bank wrongly reported me as NPA. How to fix CIBIL?</button>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <span class="status-dot"></span>
+      <span>InLegal-Sbert · Qdrant · Groq</span>
+    </div>
+  </aside>
+
+  <div class="main">
+
+    <div class="topbar">
+      <div class="topbar-title">Indian Banking Legal AI</div>
+      <span class="mode-badge" id="modeBadge">Auto</span>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <span class="welcome-icon">⚖️</span>
+        <h2>Ask anything about Indian banking law</h2>
+        <p>I can explain acts like SARFAESI, IBC, and NI Act, quote specific sections,
+           cite landmark cases, and answer in simple language or formal legal terms —
+           your choice.</p>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <div class="input-wrap">
+          <textarea
+            id="queryInput"
+            rows="1"
+            placeholder="Ask about SARFAESI, cheque bounce, IBC, RBI complaints, loan recovery..."
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="submitQuery()" title="Send (Enter)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let currentMode = 'auto';
+
+  // Mode selector
+  function setMode(mode, el) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+
+    const badge = document.getElementById('modeBadge');
+    badge.textContent = mode === 'auto' ? 'Auto' : mode === 'layman' ? 'Simple English' : 'Legal / Formal';
+    badge.className = 'mode-badge ' + (mode === 'auto' ? '' : mode);
+  }
+
+  // Auto-resize textarea
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  // Enter key handling
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitQuery();
+    }
+  }
+
+  // Quick question buttons
+  function askQuick(btn) {
+    const input = document.getElementById('queryInput');
+    input.value = btn.textContent.trim();
+    autoResize(input);
+    submitQuery();
+  }
+
+  // Append message to chat
+  function appendMessage(role, content, citations, mode) {
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    const messages = document.getElementById('messages');
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${role}`;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'You' : 'Mr. InLeagle Singh';
+    wrap.appendChild(label);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    if (role === 'bot') {
+      const answerDiv = document.createElement('div');
+      answerDiv.className = 'answer-text';
+      answerDiv.innerHTML = formatAnswer(content);
+      bubble.appendChild(answerDiv);
+
+      if (citations && citations.length > 0) {
+        const citeBlock = document.createElement('div');
+        citeBlock.className = 'citations';
+        citeBlock.innerHTML = `<div class="citations-label">Sources cited</div>` +
+          citations.map(c => `<div class="citation-item">${escHtml(c)}</div>`).join('');
+        bubble.appendChild(citeBlock);
+      }
+
+      if (mode) {
+        const meta = document.createElement('div');
+        meta.className = 'msg-meta';
+        meta.textContent = `${mode} mode`;
+        wrap.appendChild(bubble);
+        wrap.appendChild(meta);
+        messages.appendChild(wrap);
+        messages.scrollTop = messages.scrollHeight;
+        return;
+      }
+    } else {
+      bubble.textContent = content;
+    }
+
+    wrap.appendChild(bubble);
+    messages.appendChild(wrap);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  // Error message
+  function appendError(msg) {
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    const messages = document.getElementById('messages');
+    const wrap = document.createElement('div');
+    wrap.className = 'msg bot';
+    wrap.innerHTML = `<div class="error-bubble">⚠️ ${escHtml(msg)}</div>`;
+    messages.appendChild(wrap);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  // Typing indicator
+  function showTyping() {
+    const messages = document.getElementById('messages');
+    const wrap = document.createElement('div');
+    wrap.className = 'msg bot typing-indicator';
+    wrap.id = 'typing';
+    wrap.innerHTML = `
+      <div class="msg-label">Mr. InLeagle Singh</div>
+      <div class="bubble">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>`;
+    messages.appendChild(wrap);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function hideTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+  }
+
+  // Format answer (basic markdown-ish)
+  function formatAnswer(text) {
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
+      .replace(/(<li>.*<\/li>)/gs, '<ol>$1</ol>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+      .replace(/^/, '<p>').replace(/$/, '</p>');
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function submitQuery() {
+    const input   = document.getElementById('queryInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const query   = input.value.trim();
+
+    if (!query) return;
+
+    // Clear input
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    // Show user message
+    appendMessage('user', query);
+    showTyping();
+
+    try {
+      const res = await fetch('/query', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ query, mode: currentMode, top_k: 5 }),
+      });
+
+      hideTyping();
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Server error' }));
+        appendError(err.detail || 'Something went wrong. Please try again.');
+        return;
+      }
+
+      const data = await res.json();
+      appendMessage('bot', data.answer, data.citations, data.mode);
+
+    } catch (err) {
+      hideTyping();
+      appendError('Could not reach the server. Make sure the FastAPI app is running.');
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+</script>
+
+</body>
+</html>
