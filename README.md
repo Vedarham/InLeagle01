@@ -1,5 +1,5 @@
 ---
-title: Nyaya Indian Banking Legal AI
+title: InLeagle Indian Banking Legal AI
 emoji: ⚖️
 colorFrom: yellow
 colorTo: gray
