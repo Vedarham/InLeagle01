@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO,
 log = logging.getLogger("app")
 
 app = FastAPI(
-    title       = "Indian Banking Legal AI",
+    title       = "InLeagle - Indian Banking Legal AI",
     description = "RAG assistant for Indian banking law",
     version     = "1.0.0",
 )

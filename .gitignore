@@ -15,7 +15,7 @@ env/
 /data/processed
 /data/rbi_documents
 
-/Snips
+Snips/
 
 # Qdrant 
 qdrant_storage/

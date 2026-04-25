@@ -19,9 +19,10 @@ log = logging.getLogger("retrieval")
 # CONFIG
 # ─────────────────────────────────────────────────────────────
 
-QDRANT_URL      = os.getenv("QDRANT_URL", "http://localhost:6333")
-COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "InLegalDocs")
-MODEL_NAME      = os.getenv("EMBEDDING_MODEL", "bhavyagiri/InLegal-Sbert")
+QDRANT_URL      = os.getenv("QDRANT_CLOUD_CLUSTER_URL", "http://localhost:6333")
+QDRANT_API_KEY  = os.getenv("QDRANT_CLOUD_API_KEY", None)
+COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", None)
+MODEL_NAME      = os.getenv("EMBEDDING_MODEL", None)
 TOP_K           = 5   # number of chunks to retrieve per query
 
 
@@ -49,7 +50,9 @@ def get_embeddings() -> HuggingFaceEmbeddings:
 def get_client() -> QdrantClient:
     global _client
     if _client is None:
-        _client = QdrantClient(url=QDRANT_URL)
+        _client = QdrantClient(
+            url=QDRANT_URL,
+            api_key=QDRANT_API_KEY if QDRANT_API_KEY else None)
         log.info(f"Qdrant connected: {QDRANT_URL}")
     return _client
 
