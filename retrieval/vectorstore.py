@@ -77,7 +77,8 @@ def get_client() -> QdrantClient:
     if _client is None:
         _client = QdrantClient(
             url=QDRANT_URL,
-            api_key=QDRANT_API_KEY if QDRANT_API_KEY else None)
+            api_key=QDRANT_API_KEY if QDRANT_API_KEY else None,
+            timeout=30)
         log.info(f"Qdrant connected: {QDRANT_URL}")
     return _client
 

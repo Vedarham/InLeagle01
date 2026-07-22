@@ -168,15 +168,20 @@ Create a `.env` file in the root directory:
 ```env
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.1-8b-instant
-QDRANT_CLOUD_CLUSTER_URL=your_qdrant_url_or_localhost
-QDRANT_CLOUD_API_KEY=your_qdrant_api_key_if_using_cloud
+
+# Qdrant Database Configuration
+# For local Qdrant container, use http://localhost:6333
+# For Qdrant Cloud, provide the Cluster URL and API Key
+QDRANT_CLOUD_CLUSTER_URL=https://your_new_qdrant_cluster_url.qdrant.io
+QDRANT_CLOUD_API_KEY=your_qdrant_cloud_api_key_here
 QDRANT_COLLECTION=InLegalDocs
+
 EMBEDDING_MODEL=bhavyagiri/InLegal-Sbert
 HF_HOME=/app/hf_cache
 ```
 
 #### 4. Run the Data Ingestion Pipeline
-To chunk and load your source PDFs into the Qdrant database:
+To chunk and load your source PDFs directly into the Qdrant database (local or cloud depending on your `.env` variables):
 ```bash
 python ingestion/ingest.py
 ```
@@ -187,6 +192,11 @@ Launch the FastAPI app:
 uvicorn app:app --host 0.0.0.0 --port 7860
 ```
 Visit `http://localhost:7860` to access the interface.
+
+---
+
+### 🟢 Conversational Memory (Follow-up Context)
+The backend now supports **conversational history and query reformulation**. When a user enters a follow-up question (e.g. *"What are my remedies under it?"*), a quick LLM pass reformulates it into a self-contained search query (e.g., *"What are my remedies under Section 13(2) of SARFAESI Act?"*) before performing the vector search. This resolves context loss and ensures highly relevant vector lookups during continuous chats.
 
 ---
 
