@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans;
+  }
+
+  ::selection {
+    background: #153f44;
+    color: #f7f8f7;
+  }
+
+  /* Thin, unobtrusive scrollbars that match the paper palette */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cfdad4 transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d5dfd9;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #b9c9c1;
+    background-clip: content-box;
+  }
+
+  :focus-visible {
+    outline: 2px solid #1d5b59;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Editorial serif used for the wordmark, greeting, and card titles */
+  .font-display {
+    font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+    font-variation-settings: 'opsz' 72;
+    letter-spacing: -0.015em;
+  }
+
+  .eyebrow {
+    @apply text-[10.5px] font-semibold uppercase tracking-[0.19em] text-muted-2;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-card;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5
+           text-[13px] font-semibold text-white transition-all duration-200 ease-soft
+           hover:bg-teal hover:-translate-y-px hover:shadow-lift active:translate-y-0
+           disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none;
+  }
+
+  .btn-quiet {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface
+           px-4 py-2.5 text-[13px] font-medium text-ink-soft transition-all duration-200
+           hover:border-sage hover:bg-rail;
+  }
+
+  /* Long-form answer typography inside the research thread */
+  .answer-body {
+    @apply text-[14.5px] leading-[1.75] text-ink-soft;
+  }
+  .answer-body h3 {
+    @apply font-display mb-2 mt-5 text-[19px] font-semibold leading-snug text-ink first:mt-0;
+  }
+  .answer-body h4 {
+    @apply mb-1.5 mt-4 text-[13px] font-semibold uppercase tracking-[0.12em] text-teal-600;
+  }
+  .answer-body p {
+    @apply mb-3 last:mb-0;
+  }
+  .answer-body strong {
+    @apply font-semibold text-ink;
+  }
+  .answer-body em {
+    @apply italic text-muted;
+  }
+  .answer-body ul {
+    @apply mb-3 list-disc space-y-1.5 pl-5 marker:text-sage;
+  }
+  .answer-body ol {
+    @apply mb-3 list-decimal space-y-1.5 pl-5 marker:text-sage;
+  }
+  .answer-body a {
+    @apply text-teal-600 underline decoration-teal/30 underline-offset-2 hover:decoration-teal;
+  }
+
+  /* Fine dotted rule used between research metadata rows */
+  .hairline {
+    @apply border-t border-line-soft;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  /* Concentric rings drawn behind the Ask InLeagle hero */
+  .hero-rings {
+    background-image:
+      radial-gradient(circle at 82% 6%, transparent 0 118px, rgba(255, 255, 255, 0.055) 118px 119px, transparent 119px),
+      radial-gradient(circle at 82% 6%, transparent 0 208px, rgba(255, 255, 255, 0.045) 208px 209px, transparent 209px),
+      radial-gradient(circle at 82% 6%, transparent 0 302px, rgba(255, 255, 255, 0.035) 302px 303px, transparent 303px),
+      radial-gradient(circle at 82% 6%, transparent 0 402px, rgba(255, 255, 255, 0.025) 402px 403px, transparent 403px);
+    background-repeat: no-repeat;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

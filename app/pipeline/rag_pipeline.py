@@ -16,15 +16,23 @@ import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 log = logging.getLogger("rag_pipeline")
 
-sys.path.append(str(Path(__file__).parent.parent))
+# Add app and root directory to sys.path to guarantee import resolution
+_APP_DIR = Path(__file__).resolve().parent.parent
+_ROOT_DIR = _APP_DIR.parent
+for p in [str(_APP_DIR), str(_ROOT_DIR)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-from retrieval.vectorstore   import search
-from generation.prompt_builder import build_prompt
+try:
+    from app.retrieval.vectorstore import search
+    from app.generation.prompt_builder import build_prompt
+except ImportError:
+    from retrieval.vectorstore import search
+    from generation.prompt_builder import build_prompt
 
 # ─────────────────────────────────────────────────────────────
 # CONFIG
@@ -42,9 +50,13 @@ MAX_TOKENS    = 1024   # max tokens in LLM response
 
 _groq_client = None
 
-def get_groq_client() -> Groq:
+def get_groq_client():
     global _groq_client
     if _groq_client is None:
+        try:
+            from groq import Groq
+        except ImportError:
+            raise ImportError("The 'groq' package is not installed. Run 'pip install groq'.")
         if not GROQ_API_KEY:
             raise ValueError("GROQ_API_KEY not found in .env")
         _groq_client = Groq(api_key=GROQ_API_KEY)

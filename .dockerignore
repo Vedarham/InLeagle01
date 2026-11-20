@@ -1,0 +1,74 @@
+# Git and environment
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / Frontend development files
+frontend/node_modules/
+frontend/src/
+frontend/public/
+frontend/package.json
+frontend/package-lock.json
+frontend/vite.config.js
+frontend/eslint.config.js
+frontend/postcss.config.js
+frontend/tailwind.config.js
+# NOTE: frontend/dist/ is KEEP (copied into container to be served by FastAPI)
+
+# IDE / Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large local caches
+hf_cache/
+.cache/
+models/
+qdrant_storage/
+collections/
+raft_state.json
+.qdrant_fs_check
+tmp/
+logs/
+*.log
+
+# Raw PDFs / Docs (if using cloud Qdrant)
+InLEAGLE_Project_Report.pdf
+Knowledge_Corpus.md
+development.md
+Questions.md
+Qestions.md
+
+# Data 
+/data/banking
+/data/cases
+/data/consumer_and_credit_protection
+/data/loan_recovery_and_insolvency
+/data/rbi_documents
+/data/processed
+
+# Evaluation
+app/evaluation/data/
+app/evaluation/reports/

@@ -9,11 +9,16 @@ venv/
 env/
 
 # Data 
-/data/acts
+/data/banking
 /data/cases
-/data/later_docs
-/data/processed
+/data/consumer_and_credit_protection
+/data/loan_recovery_and_insolvency
 /data/rbi_documents
+/data/processed
+
+# Evaluation
+app/evaluation/data/
+app/evaluation/reports/
 
 # Qdrant 
 qdrant_storage/
@@ -43,3 +48,5 @@ logs/
 .pytest_cache/
 Questions.md
 Qestions.md
+development.md
+Knowledge_Corpus.md

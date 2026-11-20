@@ -34,9 +34,6 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
-from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 log = logging.getLogger("retrieval")
@@ -57,13 +54,17 @@ TOP_K           = 5   # number of chunks to retrieve per query
 # Load model and client once — reused across all queries
 # ─────────────────────────────────────────────────────────────
 
-_embeddings: Optional[SentenceTransformer] = None
-_client: Optional[QdrantClient] = None
+_embeddings = None
+_client = None
 
 
-def get_embeddings() -> SentenceTransformer:
+def get_embeddings():
     global _embeddings
     if _embeddings is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            raise ImportError("The 'sentence_transformers' package is not installed. Run 'pip install sentence-transformers'.")
         log.info(f"Loading embedding model: {MODEL_NAME}")
         _embeddings = SentenceTransformer(
             MODEL_NAME,
@@ -72,9 +73,13 @@ def get_embeddings() -> SentenceTransformer:
     return _embeddings
 
 
-def get_client() -> QdrantClient:
+def get_client():
     global _client
     if _client is None:
+        try:
+            from qdrant_client import QdrantClient
+        except ImportError:
+            raise ImportError("The 'qdrant_client' package is not installed. Run 'pip install qdrant-client'.")
         _client = QdrantClient(
             url=QDRANT_URL,
             api_key=QDRANT_API_KEY if QDRANT_API_KEY else None,
@@ -112,6 +117,12 @@ def search(
     # Build optional metadata filter
     qdrant_filter = None
     conditions    = []
+
+    if source_type or doc_name:
+        try:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+        except ImportError:
+            Filter = FieldCondition = MatchValue = None
 
     if source_type:
         conditions.append(

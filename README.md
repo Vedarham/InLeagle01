@@ -8,7 +8,7 @@ pinned: false
 app_port: 7860
 ---
 
-# InLEAGLE: Intelligent Legal Research & Question Answering System for Indian Judiciary
+# InLeagle: Intelligent Legal Research & Question Answering System for Indian Judiciary
 
 [![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Space-yellow)](https://huggingface.co/spaces)
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
@@ -18,70 +18,107 @@ app_port: 7860
 
 ---
 
-## 👥 Project Team Members
-* **Arham Sabadra**
-* **Arimit Chatterjee**
-* **Aryan Jhala**
-* **Under the Guidance of:**
-  * **Prof. Digendra Singh Rathore**
-  * **Mrs. Garima Silkari**
-  * *Department of Computer Science & Engineering, Medicaps University, Indore*
+## Project Team
+
+> **Under the Guidance of:**  
+> Prof. Digendra Singh Rathore & Mrs. Garima Silkari  
+> *Department of Computer Science & Engineering, Medicaps University, Indore*
+
+| Member | Domain & Key Responsibilities |
+|---|---|
+| **Arham Sabadra** | **RAG Data Pipeline & API** — Vector retrieval architecture, Qdrant indexing, query reformulation, LangChain orchestration, and FastAPI endpoint design. |
+| **Aryan Jhala** | **Frontend & UI/UX** — Modern React + Tailwind interface, Overview dashboard, streaming responses, citation and source drawers, command palette (⌘K), and responsive layout. |
+| **Arimit Chatterjee** | **OCR & Backend** — PDF parsing with `pdfplumber`, backend execution logic, OCR fallback integration, evaluation suite, and deployment containerization. |
 
 ---
 
-## 📝 Brief Description
+## Brief Description
+
 **InLEAGLE** (Intelligent Legal Research & QA System for Indian Judiciary) is an AI-powered legal assistant specialized in Indian banking laws, financial statutes, and central regulations. The system addresses a critical gap in the financial sector where navigating complex banking disputes, loan recovery procedures, and regulatory compliances is highly difficult for individual borrowers, students, and smaller legal practitioners.
 
 By utilizing Retrieval-Augmented Generation (RAG) and semantic search powered by **bhavyagiri/InLegal-Sbert** (fine-tuned on the Indian Legal Corpus), InLEAGLE understands the semantic meaning of natural language queries (such as queries regarding loan recovery, cheque bouncing, and CIBIL disputes) rather than relying solely on keyword matching. The system indexes key statutory acts (e.g., SARFAESI Act, NI Act Section 138, Banking Regulation Act, IBC), central regulatory guidelines (RBI Master Directions on KYC, Fair Practices Code, and Frauds), and landmark banking precedents (such as *Mardia Chemicals*, *Transcore*, *Lalit Kumar Jain*, and *ICICI vs. Shanti Devi*), grounding LLM responses in verifiable citations to prevent hallucinations.
 
 ---
 
-## 🛠️ Tech Stack & Tools Used
+## Performance Benchmarks & Legal Evaluation
 
-### 🟢 Active & Implemented Features
-* **Legal Embeddings**: `bhavyagiri/InLegal-Sbert` (768-dimensional semantic vectors trained on 27GB of Indian legal text by IIT Kharagpur/OpenNyAI)
-* **Vector Database**: `Qdrant` (Persistent vector store, approximate nearest neighbor search via HNSW, cosine distance metric)
-* **Language Model (LLM)**: `Meta Llama 3.1` (128K context window, utilized via Groq Cloud API for speed and precision)
-* **Orchestration**: `LangChain` (Manages prompt building and LLM-context interaction)
-* **PDF Extraction**: `pdfplumber` (Native PDF parsing)
-* **Backend Framework**: `FastAPI` (Python REST API for serving model predictions)
-* **Frontend**: Responsive Single-Page UI built with HTML, CSS, and Vanilla JavaScript
-* **Deployment**: `Hugging Face Spaces` (Public hosting, Docker SDK, exposed port 7860)
+InLEAGLE establishes a formal, reproducible **150-question benchmark dataset** (`app/evaluation/data/benchmark_150.json`) with ground-truth expected answers, verified statutory sections, landmark precedents, exact financial figures, and jurisdiction rules across 10 core banking law domains.
 
-### 🟡 Planned / Report Specifications Stack (Pending Integration)
-* **Named Entity Recognition (NER)**: `OpenNyAI NER` (Extracts petitioners, respondents, judges, courts, statutes, and precedents with 85%+ F1 score)
-* **Scanned PDF OCR**: `Tesseract OCR v5.x` (For scanned legal documents)
-* **Database**: `PostgreSQL` / `SQLite` (For case metadata and anonymized user feedback logs)
+### Executive Evaluation Baseline (150-Question Benchmark)
+
+| Evaluation Metric | Measured Baseline | Target Benchmark | Formal Definition |
+|---|---|---|---|
+| **Retrieval Precision@5** | **82.0%** | $\ge 75.0\%$ | Fraction of top-5 retrieved chunks that match ground truth statutes or precedents |
+| **Retrieval MRR** | **1.0000** | $\ge 0.7000$ | Mean Reciprocal Rank of the first relevant legal document |
+| **Retrieval Latency (P90)** | **< 2.0 s** | $< 2.0$ s | Semantic search retrieval time over Qdrant cloud vector store |
+| **Citation Precision** | **100.0%** | $\ge 90.0\%$ | Percentage of cited sources that genuinely support their associated claims |
+| **Citation Coverage** | **57.4%** | $\ge 50.0\%$ | Percentage of material factual/legal claims supported by verifiable citations |
+| **Statutory Accuracy** | **75.0%** | $\ge 70.0\%$ | Whether the cited section, subsection, and Act are exact and legally correct |
+| **Temporal Validity** | **92.3%** | $\ge 85.0\%$ | Whether the provision or circular cited was in force on the relevant operative date |
+| **Jurisdiction Accuracy** | **70.7%** | $\ge 70.0\%$ | Whether the answer correctly accounts for jurisdictional forum requirements |
+| **Contradiction Detection** | **48.0%** | $\ge 40.0\%$ | Whether conflicting legal authorities (e.g. IBC §238 overriding SARFAESI) are identified |
+| **RAGAS Answer Relevance** | **80.9%** | $\ge 80.0\%$ | Semantic completeness and alignment with user question intent |
+| **Financial Math Pass Rate**| **100.0%** | $100.0\%$ | Exact mathematical pass rate on EMI, NI Act §143A/148 caps, and DRAT pre-deposits |
 
 ---
 
-## ⚙️ Features & Functionalities
+## Tech Stack & Tools Used
 
-### 🟢 Active & Implemented Features
-#### 1. Semantic Case Search
+### Active & Implemented Features
+* **Legal Embeddings**: `bhavyagiri/InLegal-Sbert` (768-dimensional semantic vectors trained on 27GB of Indian legal text by IIT Kharagpur/OpenNyAI)
+* **Vector Database**: `Qdrant` (Persistent cloud vector store, approximate nearest neighbor search via HNSW, cosine distance metric)
+* **Language Model (LLM)**: `Meta Llama 3.1` (128K context window, utilized via Groq Cloud API for speed and precision)
+* **Orchestration**: `LangChain` (Manages prompt building and LLM-context interaction)
+* **PDF Extraction**: `pdfplumber` (Native PDF parsing with structural retention testing)
+* **Backend Framework**: `FastAPI` (Python REST API for serving model predictions and evaluation suites)
+* **Frontend**: React 19 + Tailwind CSS — warm paper and deep teal editorial interface, Overview dashboard, Ask InLeagle research thread with streaming answers and collapsible citations, Case Library, saved research, keyboard search (⌘K), mobile-responsive layout
+* **Evaluation Suite**: 150-question benchmark dataset with retrieval evaluation, claim-level legal citation validation, RAGAS adapter, and financial calculation tests
+* **Deployment**: `Hugging Face Spaces` (Public hosting, Docker SDK, exposed port 7860)
+
+### Planned / In Development
+* **Named Entity Recognition (NER)**: `OpenNyAI NER` (Extracts petitioners, respondents, judges, courts, statutes, and precedents with 85%+ F1 score)
+* **Scanned PDF OCR**: `Tesseract OCR v5.x` (For scanned legal documents)
+* **Database**: `PostgreSQL` / `SQLite` (For case metadata and anonymized user feedback logs)
+* **Knowledge Graph**: PostgreSQL-backed graph for statutory relationships (`INTERPRETS`, `AMENDS`, `SUPERSEDES`)
+
+---
+
+## Features & Functionalities
+
+### 1. Semantic Case Search & Retrieval
 * **Natural Language Queries**: Users can describe a banking dispute in plain English (e.g., *"What is my remedy if the bank issues a Section 13(2) notice under SARFAESI?"*).
 * **Focused Retrieval**: Searches and returns the top 5 semantically relevant statutory sections, RBI master circulars, or judicial precedents from the Qdrant database in under 2 seconds (P90).
-* **Expandable Result Cards**: Displays case/statute title, citation, court, judgment date, presiding judge, and a 3-4 sentence excerpt.
-* **Advanced Filters**: Supports filtering search queries by court level, date range (from/to year), and judge names.
+* **Expandable Result Cards**: Displays case/statute title, citation, court, judgment date, presiding judge, and an excerpt.
 
-#### 2. Legal Q&A Chatbot
+### 2. Legal Q&A Assistant (Ask InLeagle)
 * **Multi-Mode Responses**: Supports three prompt modes:
   * **Auto-Detect**: Automatically classifies user queries into layman or legal intents.
   * **Simple Layman**: Empathic, action-oriented responses in plain English without complex jargon.
   * **Formal Legal**: Section-heavy, formal legal analysis citing exact acts and codes.
-* **Fact Grounding & Verifiable Citations**: Restricts responses to retrieved document contexts with a strict fallback notice (*"insufficient information"*) to eliminate model hallucinations (Achieved MVP: 96.7% Faithfulness).
-* **Source Reference Block**: Appends click-to-expand citations linking directly to the source judgment excerpt.
+* **Conversational Memory**: Supports follow-up questions with query reformulation for consistent multi-turn context.
+* **Streaming Response Reveal**: Animated reveal with expandable citation drawer.
 
-### 🟡 Report Specifications (Pending Integration / In Development)
-#### 3. Document Analysis & Legal OCR
-* **Multi-Format Uploads**: Supports native PDFs, DOCX, and image file formats up to 50MB.
-* **OCR Fallback**: Automatically invokes Tesseract OCR for scanned PDF documents.
-* **Entity Extraction**: Uses OpenNyAI NER to detect and list petitioners, respondents, judges, courts, statutes, and referenced precedents.
-* **Precedent Finder**: Automatically runs vector searches on extracted text to locate and list the top 5 similar case precedents.
+### 3. Evaluation & Metrics Suite
+* **150-Question Benchmark**: Standardized dataset across 10 categories:
+  * SARFAESI Act, 2002
+  * Insolvency and Bankruptcy Code (IBC), 2016
+  * Negotiable Instruments Act (NI Act), 1881
+  * Banking Regulation Act, 1949
+  * RBI Master Directions & Regulatory Circulars
+  * Recovery of Debts and Bankruptcy Act (RDB Act / DRT), 1993
+  * Consumer Protection Act, 2019 (Banking Deficiency)
+  * Financial & Numeric Calculations (EMI, Penal charges, Pre-deposits)
+  * Deposit Insurance (DICGC Act), 1961
+  * Credit Information (CIBIL / CICRA), 2005
+* **Evaluation Endpoints**:
+  * `GET /evaluation/summary`: Returns the latest evaluation report JSON.
+  * `GET /evaluation/benchmark`: Fetches benchmark questions and metadata.
+  * `POST /evaluation/run`: Triggers an automated evaluation pass.
+  * `GET /evaluation/report`: Renders the Markdown evaluation report in HTML.
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
@@ -93,56 +130,41 @@ graph TD
     end
 
     subgraph Query & RAG Pipeline
-        User[User Query] --> UI[FastAPI Frontend UI]
+        User[User Query] --> UI[React Frontend]
         UI --> API[FastAPI Backend /query]
         API --> Mode{Mode Selection}
-        Mode -->|Auto Detect| Intent[Intent Detector]
-        Mode -->|Layman| PromptBuilder[Prompt Builder]
-        Mode -->|Legal| PromptBuilder
+        Mode --> |Auto Detect| Intent[Intent Detector]
+        Mode --> |Layman| PromptBuilder[Prompt Builder]
+        Mode --> |Legal| PromptBuilder
         Intent --> PromptBuilder
         
         API --> Retrieve[Embed Query & Search]
-        Retrieve -->|bhavyagiri/InLegal-Sbert| E
-        E -->|Top-K Chunks| Context[Construct Legal Context]
+        Retrieve --> |bhavyagiri/InLegal-Sbert| E
+        E --> |Top-K Chunks| Context[Construct Legal Context]
         Context --> PromptBuilder
         
         PromptBuilder --> LLM[Groq LLaMA 3.1 Inference]
         LLM --> Response[Structured JSON Response]
         Response --> UI
     end
+
+    subgraph Evaluation Pipeline
+        Bench[150-Question Benchmark] --> RetEval[Retrieval Evaluator]
+        Bench --> CitEval[Claim-Level Citation Evaluator]
+        Bench --> RagasAdap[RAGAS Adapter]
+        Bench --> DocEval[Financial & Document Validator]
+        RetEval --> Summary[Reports & Executive Dashboard]
+        CitEval --> Summary
+        RagasAdap --> Summary
+        DocEval --> Summary
+    end
 ```
 
 ---
 
-## 📸 Project Screenshot Output
+## Installation & Execution Steps
 
-## Homepage
-
-![Homepage](assets/screenshots/homepage.png)
-
-## RBI Ombudsman Explanation
-
-![RBI Ombudsman](assets/screenshots/rbi-ombudsman-chat.png)
-
-## NPA / CIBIL Assistance
-
-![NPA Support](assets/screenshots/npa-cibil-support.png)
-
-## Legal Citations
-
-![Legal Sources](assets/screenshots/legal-sources-response.png)
-
-## Chat Interface
-
-![Chat UI](assets/screenshots/chat-interface.png)
-
----
-
-## 🛠️ Installation & Execution Steps
-
-The system can be configured in two ways: **Repository Implementation** (FastAPI hosting a consolidated single-page HTML frontend) or **Full Report Architecture** (FastAPI Backend + React Frontend).
-
-### A. Repository Setup (Single-Page FastAPI App)
+### A. Backend Setup (FastAPI)
 
 #### 1. Setup Virtual Environment
 ```bash
@@ -170,75 +192,68 @@ GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.1-8b-instant
 
 # Qdrant Database Configuration
-# For local Qdrant container, use http://localhost:6333
-# For Qdrant Cloud, provide the Cluster URL and API Key
-QDRANT_CLOUD_CLUSTER_URL=https://your_new_qdrant_cluster_url.qdrant.io
+QDRANT_CLOUD_CLUSTER_URL=https://your_cluster_url.qdrant.io
 QDRANT_CLOUD_API_KEY=your_qdrant_cloud_api_key_here
-QDRANT_COLLECTION=InLegalDocs
+QDRANT_COLLECTION=Inleagle01
 
 EMBEDDING_MODEL=bhavyagiri/InLegal-Sbert
 HF_HOME=/app/hf_cache
+
+# CORS
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
 #### 4. Run the Data Ingestion Pipeline
-To chunk and load your source PDFs directly into the Qdrant database (local or cloud depending on your `.env` variables):
 ```bash
-python ingestion/ingest.py
+# Ingest all legal documents into Qdrant
+python -m app.ingestion.ingest
+
+# Or ingest a single document:
+python -m app.ingestion.ingest --doc sarfaesi
 ```
 
-#### 5. Run the Server
-Launch the FastAPI app:
+#### 5. Run the Backend Server
 ```bash
-uvicorn app:app --host 0.0.0.0 --port 7860
+# Using the root launcher:
+python run.py
+
+# Or via uvicorn directly:
+uvicorn app.main:app --host 0.0.0.0 --port 7860 --reload
 ```
-Visit `http://localhost:7860` to access the interface.
+Visit `http://localhost:7860` to access the modern React interface.
 
 ---
 
-### 🟢 Conversational Memory (Follow-up Context)
-The backend now supports **conversational history and query reformulation**. When a user enters a follow-up question (e.g. *"What are my remedies under it?"*), a quick LLM pass reformulates it into a self-contained search query (e.g., *"What are my remedies under Section 13(2) of SARFAESI Act?"*) before performing the vector search. This resolves context loss and ensures highly relevant vector lookups during continuous chats.
+### B. Frontend Setup (React 19 + Tailwind)
 
----
+The React frontend lives in `frontend/` and automatically connects to the FastAPI backend.
 
-### B. Report Setup (FastAPI Backend + React Frontend)
-If deploying the dual-repository structure described in the theoretical specifications of the project report:
-
-#### 1. Backend Setup
-Follow the steps above to configure the virtual environment and `.env`. Start the backend server:
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-#### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev      # Development server at http://localhost:3000
+npm run build    # Production build to frontend/dist/
 ```
-The React frontend will serve at `http://localhost:3000` and communicate with the FastAPI endpoints at port `8000`.
 
-#### 3. Theoretical Ingestion Pipeline
-To process the initial dataset from the report benchmarks:
-```bash
-python scripts/data_pipeline.py --source ILDC --limit 50000
-```
+> In development, Vite auto-proxies `/query`, `/health`, and `/evaluation` to `http://localhost:7860`.
+> In production, FastAPI serves `frontend/dist/` directly at `http://localhost:7860/`.
 
 ---
 
-## 🚀 Roadmap & Future Improvements
+### C. Running the Evaluation Suite
 
-To transition the project from a functional RAG prototype to an enterprise-grade Legal AI, the following upgrades are planned:
+Evaluate the RAG pipeline against the verified 150-question ground-truth benchmark:
 
-### 1. Architectural & Retrieval Upgrades
-* **Hybrid Search**: Combine dense vector retrieval (`bhavyagiri/InLegal-Sbert`) with sparse lexical search (`BM25` or `Qdrant BM25 API`) to capture precise statutory section numbers and legal terms.
-* **Cross-Encoder Re-ranking**: Integrate a reranker (like `BAAI/bge-reranker-large` or Cohere) to prioritize the most legally sound context chunks before passing to LLaMA.
-* **Metadata-Enriched Hierarchical Chunking**: Ingest documents utilizing structural hierarchy (chapters, sections, sub-sections) as metadata rather than arbitrary character splits.
-* **Guardrails & Evaluation**: Integrate framework tools (like `Ragas` or `TruLens`) to evaluate faithfulness, answer relevance, and context recall, alongside safety guardrails (`NeMo Guardrails`).
+```bash
+# Run the complete evaluation pipeline:
+python -m app.evaluation.runner
 
-### 2. Frontend & UX Features
-* **Document Uploader**: Enable users to upload their own banking notices (SARFAESI 13(2), CIBIL reports, or loan recovery warnings) to receive automated, localized compliance summaries.
-* **Side-by-Side PDF Viewer**: Render cited acts/judgments side-by-side with chat responses, highlighting exact matching legal text blocks.
-* **Automated Redressal Drafts**: Generate automated formal complaint drafts to the Bank's Principal Nodal Officer or the RBI Ombudsman based on the user's chat session.
+# Or test individual evaluation modules:
+python -m app.evaluation.retrieval_eval
+python -m app.evaluation.document_eval
+```
 
-### 3. Knowledge Expansion
-Expand the vector database by registering and ingesting missing core banking Acts, RBI Master Directions, and landmark cases currently stored in the repository.
+Reports are automatically generated and viewable in the browser:
+- Interactive HTML Report: `http://localhost:7860/evaluation/report`
+- Summary Metrics: `http://localhost:7860/evaluation/summary`
+- Benchmark Dataset Browser: `http://localhost:7860/evaluation/benchmark`
