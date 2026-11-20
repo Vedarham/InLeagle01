@@ -18,20 +18,6 @@ app_port: 7860
 
 ---
 
-## Project Team
-
-> **Under the Guidance of:**  
-> Prof. Digendra Singh Rathore & Mrs. Garima Silkari  
-> *Department of Computer Science & Engineering, Medicaps University, Indore*
-
-| Member | Domain & Key Responsibilities |
-|---|---|
-| **Arham Sabadra** | **RAG Data Pipeline & API** — Vector retrieval architecture, Qdrant indexing, query reformulation, LangChain orchestration, and FastAPI endpoint design. |
-| **Aryan Jhala** | **Frontend & UI/UX** — Modern React + Tailwind interface, Overview dashboard, streaming responses, citation and source drawers, command palette (⌘K), and responsive layout. |
-| **Arimit Chatterjee** | **OCR & Backend** — PDF parsing with `pdfplumber`, backend execution logic, OCR fallback integration, evaluation suite, and deployment containerization. |
-
----
-
 ## Brief Description
 
 **InLEAGLE** (Intelligent Legal Research & QA System for Indian Judiciary) is an AI-powered legal assistant specialized in Indian banking laws, financial statutes, and central regulations. The system addresses a critical gap in the financial sector where navigating complex banking disputes, loan recovery procedures, and regulatory compliances is highly difficult for individual borrowers, students, and smaller legal practitioners.
