@@ -72,3 +72,13 @@ Qestions.md
 # Evaluation
 app/evaluation/data/
 app/evaluation/reports/
+
+# Test and benchmark scripts (not needed in production container)
+test_*.py
+measure_latency.py
+test_safeguard_and_latency.py
+
+# Scratch and temp files
+scratch/
+*.tmp
+.system_generated/

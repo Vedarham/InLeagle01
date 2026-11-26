@@ -12,12 +12,9 @@ import Toast from './components/Toast';
 import { CASE_BY_ID } from './data/library';
 import {
   PROFILE,
-  TEST_PROFILE,
   DEFAULT_COLLECTIONS,
   EMPTY_ACTIVITY,
   EMPTY_RESEARCH,
-  TEST_MOCK_ACTIVITY,
-  TEST_MOCK_RESEARCH,
 } from './data/workspace';
 import { askLegal, checkHealth } from './lib/api';
 import { loadJSON, saveJSON, uid } from './lib/storage';
@@ -36,22 +33,14 @@ export default function App() {
   const [researchFocus, setResearchFocus] = useState(null);
   const [toast, setToast] = useState('');
 
-  /* ── Test Mode Switch ───────────────────────────────────────── */
-  // Default is false (Live Mode = zero dummy data)
-  const [testMode, setTestMode] = useState(() => loadJSON('testMode', false));
-
-  /* ── Workspace data (Clean live by default, mock in test mode) ─ */
+  /* ── Workspace data (Clean live state) ───────────────────────── */
   const [collections, setCollections] = useState(() => loadJSON('collections', DEFAULT_COLLECTIONS));
   const [activeCollection, setActiveCollection] = useState(null);
-  const [liveSaved, setLiveSaved] = useState(() => loadJSON('research_live', EMPTY_RESEARCH));
-  const [liveActivity, setLiveActivity] = useState(() => loadJSON('activity_live', EMPTY_ACTIVITY));
+  const [saved, setSaved] = useState(() => loadJSON('research_live', EMPTY_RESEARCH));
+  const [activity, setActivity] = useState(() => loadJSON('activity_live', EMPTY_ACTIVITY));
   const [promoVisible, setPromoVisible] = useState(() => loadJSON('promoVisible', true));
   const [mode, setMode] = useState(() => loadJSON('mode', 'auto'));
-
-  // Active data derived from testMode toggle
-  const saved = useMemo(() => (testMode ? TEST_MOCK_RESEARCH : liveSaved), [testMode, liveSaved]);
-  const activity = useMemo(() => (testMode ? TEST_MOCK_ACTIVITY : liveActivity), [testMode, liveActivity]);
-  const profile = useMemo(() => (testMode ? TEST_PROFILE : PROFILE), [testMode]);
+  const profile = PROFILE;
 
   /* ── Research thread ───────────────────────────────────────── */
   const [messages, setMessages] = useState([]);
@@ -62,17 +51,14 @@ export default function App() {
 
   /* ── Persistence ───────────────────────────────────────────── */
   useEffect(() => {
-    saveJSON('testMode', testMode);
-  }, [testMode]);
-  useEffect(() => {
     saveJSON('collections', collections);
   }, [collections]);
   useEffect(() => {
-    saveJSON('research_live', liveSaved);
-  }, [liveSaved]);
+    saveJSON('research_live', saved);
+  }, [saved]);
   useEffect(() => {
-    saveJSON('activity_live', liveActivity);
-  }, [liveActivity]);
+    saveJSON('activity_live', activity);
+  }, [activity]);
   useEffect(() => {
     saveJSON('promoVisible', promoVisible);
   }, [promoVisible]);
@@ -123,21 +109,9 @@ export default function App() {
   /* ── Helpers ───────────────────────────────────────────────── */
   const showToast = useCallback((message) => setToast(message), []);
 
-  const toggleTestMode = useCallback(() => {
-    setTestMode((prev) => {
-      const next = !prev;
-      showToast(
-        next
-          ? 'Switched to Test UI Mode (Showing demo cards & mock scenario fallback)'
-          : 'Switched to Clean Live Mode (Real backend connection with clean workspace)'
-      );
-      return next;
-    });
-  }, [showToast]);
-
   const recordActivity = useCallback((kind, { text, emphasis, caseId }) => {
     const item = { id: uid(), kind, text, emphasis, caseId, time: 'Just now', at: Date.now() };
-    setLiveActivity((previous) => [item, ...previous].slice(0, 24));
+    setActivity((previous) => [item, ...previous].slice(0, 24));
   }, []);
 
   const navigate = useCallback((nextPage) => {
@@ -207,7 +181,6 @@ export default function App() {
           query: question,
           mode,
           history: priorHistory,
-          isTestMode: testMode,
         });
         const answer = result.answer?.trim();
 
@@ -264,7 +237,7 @@ export default function App() {
         updatedAt: Date.now(),
       };
 
-      setLiveSaved((previous) => [newItem, ...previous]);
+      setSaved((previous) => [newItem, ...previous]);
       setSavedMessageIds((previous) => [...previous, message.id]);
       recordActivity('saved', { text: 'Saved', emphasis: `“${shortQuestion(question)}”` });
       showToast('Saved to My Research');
@@ -289,7 +262,7 @@ export default function App() {
         updatedAt: Date.now(),
       };
 
-      setLiveSaved((previous) => [newItem, ...previous]);
+      setSaved((previous) => [newItem, ...previous]);
       recordActivity('saved', { text: 'Saved landmark case', emphasis: caseItem.title, caseId: caseItem.id });
       showToast('Case saved to My Research');
     },
@@ -298,7 +271,7 @@ export default function App() {
 
   const deleteSaved = useCallback(
     (id) => {
-      setLiveSaved((previous) => previous.filter((item) => item.id !== id));
+      setSaved((previous) => previous.filter((item) => item.id !== id));
       showToast('Removed from research');
     },
     [showToast],
@@ -365,8 +338,6 @@ export default function App() {
           onOpenSearch={() => setPaletteOpen(true)}
           onMenuOpen={() => setSidebarOpen(true)}
           apiStatus={apiStatus}
-          testMode={testMode}
-          onToggleTestMode={toggleTestMode}
           profile={profile}
         />
 

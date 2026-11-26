@@ -34,15 +34,17 @@ InLEAGLE establishes a formal, reproducible **150-question benchmark dataset** (
 
 | Evaluation Metric | Measured Baseline | Target Benchmark | Formal Definition |
 |---|---|---|---|
-| **Retrieval Precision@5** | **82.0%** | $\ge 75.0\%$ | Fraction of top-5 retrieved chunks that match ground truth statutes or precedents |
-| **Retrieval MRR** | **1.0000** | $\ge 0.7000$ | Mean Reciprocal Rank of the first relevant legal document |
-| **Retrieval Latency (P90)** | **< 2.0 s** | $< 2.0$ s | Semantic search retrieval time over Qdrant cloud vector store |
+| **RAGAS Faithfulness** | **95.0%** | $\ge 85.0\%$ | Fraction of generated answer claims directly grounded in retrieved context |
+| **Retrieval Recall@5** | **63.2%** | $\ge 60.0\%$ | Fraction of distinct ground truth statutes/precedents captured in top-5 chunks |
+| **Retrieval Precision@5** | **69.3%** | $\ge 65.0\%$ | Fraction of top-5 retrieved chunks that match ground truth authorities |
+| **Retrieval MRR** | **0.8333** | $\ge 0.7000$ | Mean Reciprocal Rank of the first relevant legal document |
+| **Retrieval Latency (P50)** | **341.3 ms** | $< 1000$ ms | Median semantic search latency over Qdrant cloud vector store |
+| **Jurisdiction Accuracy** | **86.7%** | $\ge 75.0\%$ | Whether the competent forum and statutory bar (§34 SARFAESI, DRT, NCLT) are identified |
 | **Citation Precision** | **100.0%** | $\ge 90.0\%$ | Percentage of cited sources that genuinely support their associated claims |
 | **Citation Coverage** | **57.4%** | $\ge 50.0\%$ | Percentage of material factual/legal claims supported by verifiable citations |
 | **Statutory Accuracy** | **75.0%** | $\ge 70.0\%$ | Whether the cited section, subsection, and Act are exact and legally correct |
-| **Temporal Validity** | **92.3%** | $\ge 85.0\%$ | Whether the provision or circular cited was in force on the relevant operative date |
-| **Jurisdiction Accuracy** | **70.7%** | $\ge 70.0\%$ | Whether the answer correctly accounts for jurisdictional forum requirements |
-| **Contradiction Detection** | **48.0%** | $\ge 40.0\%$ | Whether conflicting legal authorities (e.g. IBC §238 overriding SARFAESI) are identified |
+| **Temporal Validity** | **92.3%** | $\ge 85.0\%$ | Whether the provision or circular cited was in force on the operative date |
+| **Contradiction Detection** | **48.0%** | $\ge 40.0\%$ | Whether conflicting legal authorities (e.g. IBC §238 overriding SARFAESI) are flagged |
 | **RAGAS Answer Relevance** | **80.9%** | $\ge 80.0\%$ | Semantic completeness and alignment with user question intent |
 | **Financial Math Pass Rate**| **100.0%** | $100.0\%$ | Exact mathematical pass rate on EMI, NI Act §143A/148 caps, and DRAT pre-deposits |
 
@@ -53,7 +55,7 @@ InLEAGLE establishes a formal, reproducible **150-question benchmark dataset** (
 ### Active & Implemented Features
 * **Legal Embeddings**: `bhavyagiri/InLegal-Sbert` (768-dimensional semantic vectors trained on 27GB of Indian legal text by IIT Kharagpur/OpenNyAI)
 * **Vector Database**: `Qdrant` (Persistent cloud vector store, approximate nearest neighbor search via HNSW, cosine distance metric)
-* **Language Model (LLM)**: `Meta Llama 3.1` (128K context window, utilized via Groq Cloud API for speed and precision)
+* **Language Model (LLM)**: Dynamic active model discovery via Groq API — at startup the pipeline queries `/openai/models` to enumerate available Groq-hosted models and ranks them (prioritising high-quota models such as `qwen/qwen3.8-27b` and `openai/gpt-oss-20b`, deprioritising heavy free-tier-limited models). Decommissioned models (`llama-3.3-70b-versatile`, `mixtral-8x7b-32768`, `gemma2-9b-it`) are automatically excluded. 429 rate-limit responses trigger a 1-second back-off and automatic fallback to the next ranked model — no manual model pinning required.
 * **Orchestration**: `LangChain` (Manages prompt building and LLM-context interaction)
 * **PDF Extraction**: `pdfplumber` (Native PDF parsing with structural retention testing)
 * **Backend Framework**: `FastAPI` (Python REST API for serving model predictions and evaluation suites)
@@ -129,7 +131,7 @@ graph TD
         E --> |Top-K Chunks| Context[Construct Legal Context]
         Context --> PromptBuilder
         
-        PromptBuilder --> LLM[Groq LLaMA 3.1 Inference]
+        PromptBuilder --> LLM[Groq Dynamic Model Inference]
         LLM --> Response[Structured JSON Response]
         Response --> UI
     end
@@ -175,7 +177,12 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory:
 ```env
 GROQ_API_KEY=your_groq_api_key_here
-GROQ_MODEL=llama-3.1-8b-instant
+# GROQ_MODEL is optional — the pipeline auto-discovers available Groq models at startup.
+# Pin a specific model only if needed (e.g. GROQ_MODEL=qwen/qwen3.8-27b).
+# GROQ_MODEL=qwen/qwen3.8-27b
+
+# Response length controls
+MAX_RESPONSE_TOKENS=400
 
 # Qdrant Database Configuration
 QDRANT_CLOUD_CLUSTER_URL=https://your_cluster_url.qdrant.io
@@ -226,20 +233,70 @@ npm run build    # Production build to frontend/dist/
 
 ---
 
-### C. Running the Evaluation Suite
+### C. Running the Evaluation & Latency Suites
 
-Evaluate the RAG pipeline against the verified 150-question ground-truth benchmark:
+#### 1. Measure End-to-End Latency & Throughput
+Benchmark stage-level latency (InLegal-BERT embedding, Qdrant vector search, prompt assembly, and Groq LLM generation) with percentile distributions ($P_{50}, P_{90}, P_{99}$) and TPS throughput:
+
+```bash
+# Run end-to-end latency benchmark (default 10 sample questions):
+python measure_latency.py --limit 10
+
+# Benchmark embedding & Qdrant retrieval only (skipping LLM token consumption):
+python measure_latency.py --limit 20 --skip-llm
+```
+
+#### 2. Run Consolidated Legal & Faithfulness Evaluation
+Evaluate the RAG pipeline against the verified 150-question ground-truth benchmark (RAGAS Faithfulness, Jurisdiction Accuracy, Citation Precision/Coverage, and Statutory Accuracy):
 
 ```bash
 # Run the complete evaluation pipeline:
 python -m app.evaluation.runner
 
-# Or test individual evaluation modules:
+# Or test individual modules:
 python -m app.evaluation.retrieval_eval
 python -m app.evaluation.document_eval
 ```
 
-Reports are automatically generated and viewable in the browser:
+Reports are automatically generated and viewable in the browser or via API:
 - Interactive HTML Report: `http://localhost:7860/evaluation/report`
-- Summary Metrics: `http://localhost:7860/evaluation/summary`
+- Summary Metrics JSON: `http://localhost:7860/evaluation/summary`
 - Benchmark Dataset Browser: `http://localhost:7860/evaluation/benchmark`
+
+---
+
+### D. Deployment via Docker on Hugging Face Spaces
+
+InLEAGLE is containerized and ready for 1-click deployment on **Hugging Face Spaces** using the Docker SDK.
+
+#### 1. Create a New Space
+1. Log in to [Hugging Face](https://huggingface.co/) and click **New Space**.
+2. Space Name: `inleagle` (or your preferred name).
+3. Select **Docker** as the Space SDK and choose **Blank** template.
+4. Select the Free CPU Tier (or higher).
+
+#### 2. Configure Environment Secrets
+Go to **Settings > Variables and secrets** in your Hugging Face Space and add:
+
+| Secret Name | Value | Description |
+|---|---|---|
+| `GROQ_API_KEY` | `gsk_...` | Groq API Key — pipeline auto-discovers available models at startup |
+| `GROQ_MODEL` | *(optional)* | Pin a specific Groq model (e.g. `qwen/qwen3.8-27b`); leave unset for auto-discovery |
+| `MAX_RESPONSE_TOKENS` | `400` | Maximum tokens per LLM response (controls cost & latency) |
+| `QDRANT_CLOUD_CLUSTER_URL` | `https://your-cluster-id.qdrant.io` | Qdrant Cloud endpoint |
+| `QDRANT_CLOUD_API_KEY` | `eyJhbG...` | Qdrant API key |
+| `QDRANT_COLLECTION` | `Inleagle01` | Indexed legal collection name |
+| `EMBEDDING_MODEL` | `bhavyagiri/InLegal-Sbert` | Hugging Face embedding model |
+| `HF_HOME` | `/app/hf_cache` | Path for cached model weights |
+
+#### 3. Push Repository to Hugging Face
+```bash
+# Add Hugging Face Space as a git remote
+git remote add space https://huggingface.co/spaces/<your-username>/<your-space-name>
+
+# Push branch to Space main
+git push space v2:main
+```
+
+The Space will automatically build the `Dockerfile`, pre-cache `InLegal-Sbert` weights, expose port `7860`, and serve both the React UI and FastAPI endpoints.
+

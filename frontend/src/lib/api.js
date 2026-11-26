@@ -74,9 +74,9 @@ export async function checkHealth({ timeout = 4000 } = {}) {
 
 /**
  * Ask the legal RAG pipeline a question.
- * Supports live backend query with fallback and test-mode simulation.
+ * Strictly live backend query — zero mock data.
  */
-export async function askLegal({ query, mode = 'auto', topK = 5, history = [], isTestMode = false }) {
+export async function askLegal({ query, mode = 'auto', topK = 5, history = [] }) {
   const basesToTry = [getApiBase()];
   if (!getApiBase() && typeof window !== 'undefined' && window.location.port && !['7860', '80', ''].includes(window.location.port)) {
     basesToTry.push(LOCAL_BACKEND);
@@ -125,16 +125,10 @@ export async function askLegal({ query, mode = 'auto', topK = 5, history = [], i
     } catch (err) {
       clearTimeout(timer);
       lastError = err;
-      // If the backend actually answered with an HTTP error (4xx or 5xx), do not mask it as network disconnect
       if (err instanceof ApiError && err.status >= 400) {
-        if (!isTestMode) throw err;
+        throw err;
       }
     }
-  }
-
-  // If live query failed but Test Mode is ON, return a structured test scenario response
-  if (isTestMode) {
-    return generateTestModeResponse(query, mode);
   }
 
   // If the server answered with an error, throw that specific error message
@@ -143,45 +137,7 @@ export async function askLegal({ query, mode = 'auto', topK = 5, history = [], i
   }
 
   throw new ApiError(
-    `Could not connect to the InLeagle backend at ${getApiBase() || 'localhost:7860'}. Ensure the FastAPI server is running with 'uvicorn app.main:app --port 7860'. You can also toggle 'Test UI Mode' in the top bar to preview without a live server.`,
+    `Could not connect to the InLeagle backend at ${getApiBase() || 'localhost:7860'}. Ensure the FastAPI server is running with 'python run.py'.`,
     { status: 0 }
   );
-}
-
-/** Fallback simulated response when Test UI Mode is active. */
-function generateTestModeResponse(query, mode) {
-  const qLower = query.toLowerCase();
-  const resolvedMode = mode === 'auto' ? (qLower.includes('section') || qLower.includes('act') ? 'legal' : 'layman') : mode;
-
-  if (qLower.includes('sarfaesi') || qLower.includes('possession') || qLower.includes('property') || qLower.includes('notice')) {
-    return {
-      answer: resolvedMode === 'legal'
-        ? "### Legal Position Under SARFAESI Act, 2002\n\nUnder **Section 13(2)** of the SARFAESI Act, 2002, the secured creditor must issue a 60-day demand notice detailing the exact amount in default. Upon receipt of such notice:\n\n1. **Representation under Section 13(3A)**: The borrower is legally entitled to submit an objection or representation. The secured creditor is statutorily mandated to consider it and communicate reasons for rejection within **15 days**.\n2. **Enforcement under Section 13(4)**: If the borrower fails to discharge liabilities and representation is rejected, the secured creditor may take symbolic or physical possession.\n3. **Remedy under Section 17**: As held in *Mardia Chemicals Ltd. v. Union of India*, the borrower cannot approach the DRT against a mere 13(2) notice; the right of appeal under Section 17 arises only upon measures initiated under Section 13(4)."
-        : "### What You Can Do Immediately\n\nYour bank cannot simply seize your home overnight. Here is your step-by-step legal protection:\n\n* **60-Day Notice Period**: Under Section 13(2) of the SARFAESI Act, the bank must give you 60 days to respond.\n* **Submit Written Objection within 60 Days**: Under Section 13(3A), you have the right to write back explaining why you dispute the claim or need loan restructuring. The bank must reply to your objection within 15 days.\n* **No Seizure During Notice**: The bank cannot take physical possession until this 60-day period expires and they formally answer your letter.",
-      mode: resolvedMode,
-      citations: [
-        'SARFAESI Act, 2002 — Sections 13(2) & 13(3A)',
-        'Mardia Chemicals Ltd. v. Union of India (2004) 4 SCC 311',
-      ],
-      sources: [
-        { document_name: 'SARFAESI Act 2002', source_type: 'act', year: 2002, score: 0.94 },
-        { document_name: 'Mardia Chemicals Ltd. v. Union of India', source_type: 'case', year: 2004, score: 0.89 },
-      ],
-    };
-  }
-
-  return {
-    answer: resolvedMode === 'legal'
-      ? `### Statutory Analysis for: "${query}"\n\nUnder Indian banking legislation and applicable RBI Master Directions:\n\n1. **Statutory Framework**: Commercial banking operations in India are regulated by the **Banking Regulation Act, 1949** and binding circulars issued under Section 35A.\n2. **Adjudication**: Recovery disputes exceeding Rs 20 Lakhs fall within the exclusive jurisdiction of the **Debts Recovery Tribunal (DRT)** under the Recovery of Debts and Bankruptcy Act, 1993.\n3. **Borrower Protections**: All loan recovery procedures must adhere strictly to the RBI Fair Practices Code for Lenders.`
-      : `### Simple Explanation for: "${query}"\n\n* **Your Rights**: Under Reserve Bank of India rules, you have the right to fair treatment and transparent terms from your bank.\n* **Dispute Redressal**: If your bank treats you unfairly, you can escalate the matter to the Bank's Principal Nodal Officer, and subsequently to the **Reserve Bank - Integrated Ombudsman**.\n* **Next Steps**: Keep written records of all bank communications, demand notices, and payment receipts.`,
-    mode: resolvedMode,
-    citations: [
-      'Banking Regulation Act, 1949 — Section 35A',
-      'Reserve Bank - Integrated Ombudsman Scheme, 2021',
-    ],
-    sources: [
-      { document_name: 'Banking Regulation Act 1949', source_type: 'act', year: 1949, score: 0.87 },
-      { document_name: 'RBI Integrated Ombudsman Scheme', source_type: 'rbi_circular', year: 2021, score: 0.82 },
-    ],
-  };
 }

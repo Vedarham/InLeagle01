@@ -14,6 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN mkdir -p /app/hf_cache && chmod -R 777 /app
 RUN python -c "from sentence_transformers import SentenceTransformer; \
     SentenceTransformer('bhavyagiri/InLegal-Sbert', cache_folder='/app/hf_cache')"
 

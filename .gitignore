@@ -46,6 +46,10 @@ aliases/
 *.log
 logs/
 .pytest_cache/
+test_*.py
+scratch/
+.system_generated/
+*.tmp
 Questions.md
 Qestions.md
 development.md

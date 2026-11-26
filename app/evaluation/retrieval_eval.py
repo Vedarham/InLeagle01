@@ -7,7 +7,7 @@ Computes Precision@K, Recall@K, MRR, HitRate@K, and Latency percentiles (P50, P9
 import time
 import math
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 try:
     from app.retrieval.vectorstore import search
@@ -50,14 +50,40 @@ def _is_chunk_relevant(chunk: Dict[str, Any], ground_truth_statutes: List[str], 
     return False
 
 
+def _count_covered_targets(chunks: List[Dict[str, Any]], expected_statutes: List[str], expected_precedents: List[str]) -> Tuple[int, int]:
+    """
+    Counts how many unique expected ground-truth targets (statutes + precedents)
+    are represented in the retrieved chunks. Bounded strictly in [0, total_targets].
+    """
+    targets = expected_statutes + expected_precedents
+    if not targets:
+        return 1, 1
+
+    covered_count = 0
+    for target in targets:
+        t_lower = target.lower()
+        tokens = [tok.strip(",.()") for tok in t_lower.split() if len(tok.strip(",.()")) > 3 and tok.lower() not in ["act", "section", "the", "code", "under"]]
+        matched = False
+        for c in chunks:
+            doc_name = (c.get("document_name") or "").lower()
+            text = (c.get("text") or "").lower()
+            if any(tok in doc_name for tok in tokens) or (len(tokens) >= 2 and sum(1 for tok in tokens if tok in text) >= 2):
+                matched = True
+                break
+        if matched:
+            covered_count += 1
+
+    return covered_count, len(targets)
+
+
 def evaluate_retrieval(
     benchmark_data: Optional[List[Dict[str, Any]]] = None,
     top_k_list: List[int] = [1, 3, 5],
     limit: Optional[int] = None,
-    mock_mode: bool = False,
 ) -> Dict[str, Any]:
     """
     Runs retrieval benchmark across the questions and returns structured metrics.
+    Uses strictly real retrieval — zero mock or synthetic fallback chunks.
     """
     if benchmark_data is None:
         benchmark_data = load_benchmark(limit=limit)
@@ -84,44 +110,16 @@ def evaluate_retrieval(
         question = item.get("question", "")
         expected_statutes = item.get("expected_statutes", [])
         expected_precedents = item.get("expected_precedents", [])
-        total_relevant = max(1, len(expected_statutes) + len(expected_precedents))
 
         start_time = time.perf_counter()
 
         retrieved_chunks: List[Dict[str, Any]] = []
-        if not mock_mode and search is not None:
+        if search is not None:
             try:
                 retrieved_chunks = search(question, top_k=max_k)
             except Exception as e:
-                log.warning(f"Live retrieval failed for {qid}: {e}. Falling back to baseline simulation.")
+                log.warning(f"Live retrieval failed for {qid}: {e}.")
                 retrieved_chunks = []
-
-        # If live retrieval produced nothing or mock_mode requested:
-        if not retrieved_chunks:
-            # Generate deterministic baseline simulation reflecting current SBERT-Qdrant baseline
-            # Baseline reports ~75-80% precision at 5 on core acts
-            retrieved_chunks = [
-                {
-                    "document_name": expected_statutes[0] if expected_statutes else "General Banking Norms",
-                    "text": item.get("evidence", ""),
-                    "score": 0.88,
-                    "source_type": "act",
-                }
-            ]
-            if len(expected_precedents) > 0:
-                retrieved_chunks.append({
-                    "document_name": expected_precedents[0],
-                    "text": item.get("expected_answer", "")[:120],
-                    "score": 0.82,
-                    "source_type": "case",
-                })
-            while len(retrieved_chunks) < max_k:
-                retrieved_chunks.append({
-                    "document_name": "Reserve Bank of India Master Directions",
-                    "text": "General prudential and debt recovery regulatory norms.",
-                    "score": 0.65,
-                    "source_type": "rbi_circular",
-                })
 
         duration_ms = (time.perf_counter() - start_time) * 1000
         latencies_ms.append(duration_ms)
@@ -142,13 +140,16 @@ def evaluate_retrieval(
         rr = 1.0 / first_rel_rank if first_rel_rank > 0 else 0.0
         reciprocal_ranks.append(rr)
 
-        # Metrics at each K
+        # Metrics at each K with mathematically bounded Recall@K in [0.0, 1.0]
         per_k_metrics = {}
         for k in top_k_list:
+            top_k_chunks = retrieved_chunks[:k]
             top_k_rel = relevance_flags[:k]
             rel_count = sum(1 for r in top_k_rel if r)
-            p_k = rel_count / float(k)
-            r_k = rel_count / float(total_relevant)
+            p_k = min(1.0, rel_count / float(k))
+
+            covered, total_tgt = _count_covered_targets(top_k_chunks, expected_statutes, expected_precedents)
+            r_k = min(1.0, covered / float(max(1, total_tgt)))
             hit_k = 1 if rel_count > 0 else 0
 
             precision_sums[k] += p_k

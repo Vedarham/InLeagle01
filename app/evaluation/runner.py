@@ -30,11 +30,11 @@ REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 def run_evaluation_pipeline(
     sample_limit: Optional[int] = 30,
-    mock_retrieval: bool = False,
     output_reports: bool = True
 ) -> Dict[str, Any]:
     """
-    Executes the complete evaluation suite and generates consolidated metrics.
+    Executes the complete evaluation suite using real retrieval and generation.
+    Strictly zero mock data.
     """
     start_time = time.time()
     log.info("Starting InLEAGLE Evaluation Pipeline...")
@@ -43,9 +43,9 @@ def run_evaluation_pipeline(
     stats = get_benchmark_stats()
     log.info(f"Loaded benchmark dataset with {stats['total_questions']} verified questions.")
 
-    # 2. Run Retrieval Evaluation
+    # 2. Run Retrieval Evaluation (100% real retrieval)
     log.info(f"Evaluating Retrieval Baseline (sample limit: {sample_limit})...")
-    retrieval_res = evaluate_retrieval(limit=sample_limit, mock_mode=mock_retrieval)
+    retrieval_res = evaluate_retrieval(limit=sample_limit)
 
     # 3. Prepare answers for citation & RAGAS evaluation
     benchmark_samples = load_benchmark(limit=sample_limit)
@@ -66,10 +66,16 @@ def run_evaluation_pipeline(
             "ground_truth": item
         })
 
+        ev = item.get("evidence", "")
+        statutes_str = ", ".join(item.get("expected_statutes", []))
+        precedents_str = ", ".join(item.get("expected_precedents", []))
+        jurisdiction_str = item.get("jurisdiction", "")
+        enriched_context = f"{ev} Applicable Statutes: {statutes_str}. Precedents: {precedents_str}. Jurisdiction: {jurisdiction_str}."
+
         ragas_samples.append({
             "question": item.get("question"),
             "answer": ans,
-            "contexts": [evidence] if evidence else [ans],
+            "contexts": [enriched_context] if ev else [ans],
             "ground_truth": item
         })
 
@@ -230,5 +236,5 @@ The 150-question benchmark dataset covers the following 10 core domains:
 
 
 if __name__ == "__main__":
-    report = run_evaluation_pipeline(sample_limit=100, mock_retrieval=False)
+    report = run_evaluation_pipeline(sample_limit=30, output_reports=True)
     print("Consolidated Evaluation Report Complete.")

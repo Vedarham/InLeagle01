@@ -33,8 +33,6 @@ export default function TopBar({
   onOpenSearch,
   onMenuOpen,
   apiStatus,
-  testMode = false,
-  onToggleTestMode,
   profile,
 }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -64,39 +62,6 @@ export default function TopBar({
           </span>
         </button>
 
-        {/* Test UI Mode Switch Button */}
-        <div className="hidden sm:flex items-center ml-2">
-          <button
-            type="button"
-            onClick={onToggleTestMode}
-            className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-[11.5px] font-medium transition-all duration-200 border ${
-              testMode
-                ? 'border-amber-line bg-amber-bg text-amber-accent shadow-sm'
-                : 'border-line bg-surface text-muted hover:text-ink hover:border-sage'
-            }`}
-            title={
-              testMode
-                ? 'Test UI Mode is active (sample mock data & test scenario fallback). Click to switch to clean Live Mode.'
-                : 'Live Mode is active (clean workspace with zero dummy data). Click to switch to Test UI Mode.'
-            }
-          >
-            {testMode ? (
-              <>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-accent"></span>
-                </span>
-                <span className="font-semibold">Test UI Mode</span>
-              </>
-            ) : (
-              <>
-                <span className="h-2 w-2 rounded-full bg-mint-accent"></span>
-                <span>Live Mode</span>
-              </>
-            )}
-          </button>
-        </div>
-
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           {/* Status badge */}
           <div className="hidden md:block mr-1">
@@ -111,9 +76,6 @@ export default function TopBar({
             aria-expanded={notificationsOpen}
           >
             <Bell className="h-[19px] w-[19px]" strokeWidth={1.6} />
-            {testMode && (
-              <span className="absolute right-2 top-[7px] h-[6px] w-[6px] rounded-full bg-ember ring-2 ring-rail" />
-            )}
           </button>
 
           <span className="hidden h-6 w-px bg-line sm:block" />
@@ -148,18 +110,6 @@ export default function TopBar({
             <div className="flex items-center justify-between border-b border-line-soft px-4 py-3">
               <p className="text-[12px] font-semibold text-ink">Notifications & Status</p>
               <StatusPill status={apiStatus} />
-            </div>
-
-            {/* Mobile test mode toggle */}
-            <div className="sm:hidden px-4 py-2.5 border-b border-line-soft bg-rail flex items-center justify-between">
-              <span className="text-[12px] font-medium text-ink">Workspace Mode:</span>
-              <button
-                type="button"
-                onClick={onToggleTestMode}
-                className="text-[11.5px] font-semibold text-teal-600 hover:underline"
-              >
-                {testMode ? 'Switch to Live Mode' : 'Switch to Test Mode'}
-              </button>
             </div>
 
             <a

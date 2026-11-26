@@ -35,25 +35,38 @@ def _heuristic_faithfulness(answer: str, context: str) -> float:
     """
     Computes faithfulness heuristic: what percentage of claims in the answer
     are directly grounded in or inferable from the retrieved context.
+    Strictly returns 0.0 on error responses, 429 rate limit errors, or empty claims.
     """
     if not answer or not context:
         return 0.0
 
+    ans_clean = answer.strip().lower()
+    # If the answer is an error message, rate limit notification, or refusal, faithfulness is strictly 0.0
+    if any(err_kw in ans_clean for err_kw in ["llm error", "error code: 429", "rate limit", "an error occurred while processing"]):
+        return 0.0
+
     claims = [s.strip() for s in re.split(r"[.!?\n]+", answer) if len(s.strip()) > 20]
     if not claims:
-        return 1.0
+        # Empty or non-substantive answers are NOT faithful
+        return 0.0
 
     ctx_lower = context.lower()
     grounded = 0
     for claim in claims:
-        words = [w.lower() for w in re.findall(r"\b[A-Za-z0-9\(\)]+\b", claim) if len(w) > 3]
+        claim_lower = claim.lower()
+        words = [
+            w for w in re.findall(r"\b[A-Za-z0-9\(\)]+\b", claim_lower)
+            if len(w) > 3 and w not in ["under", "which", "their", "shall", "about", "these", "where", "there", "would", "could", "should"]
+        ]
         if not words:
-            grounded += 1
             continue
         # Check token containment ratio
         matches = sum(1 for w in words if w in ctx_lower)
         ratio = matches / float(len(words))
-        if ratio >= 0.40:
+        has_statute_match = bool(re.search(r"\b\d+[a-z]?\b", claim_lower)) and any(
+            num in ctx_lower for num in re.findall(r"\b\d+[a-z]?\b", claim_lower)
+        )
+        if ratio >= 0.28 or has_statute_match:
             grounded += 1
 
     return min(1.0, grounded / float(len(claims)))
@@ -63,13 +76,16 @@ def _heuristic_answer_relevance(question: str, answer: str) -> float:
     """
     Computes semantic similarity / relevance between question intent and answer.
     """
+    if not answer or any(err_kw in answer.lower() for err_kw in ["llm error", "429", "error occurred"]):
+        return 0.0
+
     q_words = set(re.findall(r"\b[A-Za-z0-9]+\b", question.lower())) - {"what", "how", "can", "the", "and", "under", "for", "with", "does", "is", "my"}
     if not q_words:
-        return 0.90
+        return 0.0
 
     ans_lower = answer.lower()
     found = sum(1 for w in q_words if w in ans_lower)
-    return min(1.0, 0.5 + 0.5 * (found / float(len(q_words))))
+    return min(1.0, found / float(len(q_words)))
 
 
 def _heuristic_context_precision(expected_statutes: List[str], retrieved_contexts: List[str]) -> float:

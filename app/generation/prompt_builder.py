@@ -59,18 +59,46 @@ def detect_mode(query: str) -> str:
     #     TEXT: The Supreme Court held that while the Act is constitutional...
 # ─────────────────────────────────────────────────────────────
 
-def build_context(chunks: list[dict]) -> str:
+def build_context(chunks: list[dict], max_context_chars: int = 5500) -> str:
+    """
+    Formats retrieved chunks into a numbered context block with strict token & length scrutiny.
+    - Caps individual chunk length at sentence boundaries.
+    - Deduplicates identical or heavily overlapping chunks.
+    - Caps total context character length to avoid exceeding Groq TPM / token limits.
+    """
     if not chunks:
         return "No relevant legal text found."
 
     lines = []
-    for i, chunk in enumerate(chunks, 1):
-        source = chunk["document_name"]
+    seen_fingerprints = set()
+    current_chars = 0
+
+    for chunk in chunks:
+        source = chunk.get("document_name", "Unknown")
         year   = chunk.get("year", "")
         stype  = chunk.get("source_type", "")
         court  = chunk.get("court", "")
+        raw_text = (chunk.get("text") or "").strip()
 
-        # Build a clean source label
+        if not raw_text:
+            continue
+
+        # Length scrutiny: deduplicate near-identical snippets
+        fingerprint = " ".join(raw_text.lower().split()[:15])
+        if fingerprint in seen_fingerprints:
+            continue
+        seen_fingerprints.add(fingerprint)
+
+        # Length scrutiny: cap long single chunks at clean sentence boundary
+        text = raw_text
+        if len(text) > 850:
+            last_period = text.rfind(".", 0, 850)
+            if last_period > 400:
+                text = text[:last_period + 1]
+            else:
+                text = text[:850].rstrip() + "..."
+
+        # Clean source label
         if stype == "case" and court:
             label = f"{source} ({court}, {year})"
         elif year:
@@ -78,11 +106,18 @@ def build_context(chunks: list[dict]) -> str:
         else:
             label = source
 
-        lines.append(f"[{i}] SOURCE: {label}")
-        lines.append(f"TEXT: {chunk['text'].strip()}")
-        lines.append("")
+        chunk_entry_len = len(label) + len(text) + 30
+        if current_chars + chunk_entry_len > max_context_chars and len(lines) > 0:
+            # Reached context token budget limit
+            break
 
-    return "\n".join(lines)
+        idx = len(lines) // 3 + 1
+        lines.append(f"[{idx}] SOURCE: {label}")
+        lines.append(f"TEXT: {text}")
+        lines.append("")
+        current_chars += chunk_entry_len
+
+    return "\n".join(lines) if lines else "No relevant legal text found."
 
 
 # ─────────────────────────────────────────────────────────────
@@ -92,36 +127,40 @@ def build_context(chunks: list[dict]) -> str:
 _LEGAL_SYSTEM_PROMPT = """You are an expert Indian banking law assistant with deep knowledge of all Indian banking legislation, RBI regulations, and landmark court judgments.
 
 Your answers must follow these rules:
-1. Base your answer primarily on the legal text provided in the context below. If the context is insufficient or the question is basic/general, you can supplement it using your general knowledge of Indian banking law, but clearly state what general legal provisions apply.
+1. Base your answer STRICTLY and SOLELY on the legal text provided in the context below. If the context does not contain sufficient legal authorities or facts to answer the question, explicitly state that the provided authorities do not cover the query. Under NO circumstances speculate, fabricate, or extrapolate statutes, section numbers, or legal precedents not supported by the context.
 2. If the user greets you (e.g. "Hello", "Hi", "Who are you?"), respond professionally and explain what banking legislation you can help them analyze (SARFAESI, Section 138 NI Act, Banking Regulation Act, IBC, CIC, RBI circulars, etc.). Do not refuse to answer.
 3. For every legal point derived from the context, cite the EXACT source — state the Act name, Section number, or Case name.
 4. Use precise legal language.
-5. Structure your answer clearly: legal position first, then relevant sections, then applicable cases if any."""
+5. Structure your answer clearly: legal position first, then relevant sections, then applicable cases if any.
+6. Competent Forum & Jurisdiction: ALWAYS explicitly state the competent legal forum or adjudicating authority where the remedy or dispute lies (e.g., Authorised Officer under Section 13(3A), Debts Recovery Tribunal (DRT) under Section 17, DRAT under Section 18, NCLT under Section 7/9/95 IBC, Judicial Magistrate / JMFC under Section 142 NI Act, Banking Ombudsman, or Consumer Commission). Also explicitly state if civil court jurisdiction is barred (e.g. Section 34 SARFAESI).
+7. Strict Context Faithfulness: Ground all factual assertions, figures, and timeframes (e.g. 60-day notice, 15-day objection reply, 30-day CIBIL resolution) directly in the law without hallucination.
+8. Brevity & Conciseness: Keep your answer direct, sharp, and concise (under 250-300 words). Avoid generic introductory filler, repetitive boilerplate, or verbose disclaimers. Structure the legal position into 3-4 crisp bullet points."""
 
 _LAYMAN_SYSTEM_PROMPT = """You are a friendly and knowledgeable Indian banking law guide named "Mr. InLeagle Singh", helping ordinary people understand their legal rights.
 
 Your answers must follow these rules:
-1. Base your answer primarily on the legal text provided in the context below. If the context does not contain the specific answer or if the query is a basic banking/legal question, feel free to use your general knowledge of Indian banking law to explain the concepts in simple terms, noting that it is general information.
+1. Base your answer STRICTLY on the legal text provided in the context below. If the context does not contain the answer, tell the user honestly that no relevant banking authority or rule is present in the database for this specific question. Never guess, invent, or assume legal provisions.
 2. If the user greets you or asks who you are, respond warmly and introduce yourself as "Mr. InLeagle Singh", explaining how you can help them navigate their banking and loan recovery problems.
 3. Explain everything in plain, simple English — no legal jargon unless you immediately explain it.
-4. Always mention which law or rule protects the person — but say it naturally (e.g. "Under the SARFAESI Act..." not "Pursuant to Section 13(2)...").
-5. Give practical, actionable steps where possible.
+4. Always mention which law or rule protects the person — but say it naturally (e.g. "Under the SARFAESI Act...").
+5. Practical Next Steps & Proper Forum: Always tell the person EXACTLY WHICH FORUM OR AUTHORITY to approach (e.g. submit representation to the Bank's Authorised Officer within 60 days, complain to the Banking Ombudsman, approach the Debts Recovery Tribunal (DRT), file in Consumer Court, or approach the Magistrate).
 6. Be empathetic — the person asking may be stressed or scared about their situation.
-7. Never guess or fabricate legal provisions. Keep your answers accurate and helpful."""
+7. Keep your answers truthful to the legal context. Never guess or fabricate legal provisions.
+8. Brevity & Direct Guidance: Keep your answer concise and actionable (under 250-300 words). Give the user their key rights and exact next steps in 3-4 structured bullet points without unnecessary rambling."""
 
 _LEGAL_USER_TEMPLATE = """LEGAL CONTEXT:
 {context}
 
 QUESTION: {query}
 
-Provide a precise legal answer citing the exact sections, acts, and cases from the context above."""
+Provide a concise, precise legal answer (under 300 words) citing the exact sections, acts, and cases from the context above."""
 
 _LAYMAN_USER_TEMPLATE = """LEGAL CONTEXT:
 {context}
 
 QUESTION: {query}
 
-Explain this in simple language a non-lawyer can understand, and tell me what steps I can take."""
+Explain this concisely in simple language (under 300 words) a non-lawyer can understand, and tell me what concrete steps I can take."""
 
 
 # ─────────────────────────────────────────────────────────────

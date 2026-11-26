@@ -83,7 +83,9 @@ def get_client():
         _client = QdrantClient(
             url=QDRANT_URL,
             api_key=QDRANT_API_KEY if QDRANT_API_KEY else None,
-            timeout=30)
+            timeout=30,
+            check_compatibility=False,
+        )
         log.info(f"Qdrant connected: {QDRANT_URL}")
     return _client
 
@@ -135,23 +137,67 @@ def search(
     if conditions:
         qdrant_filter = Filter(must=conditions)
 
-    # Search
-    hits = client.query_points(
-    collection_name=COLLECTION_NAME,
-    query=query_vector,
-    query_filter=qdrant_filter,
-    limit=top_k,
-    with_payload=True,
-    score_threshold=0.3,
-    ).points
+    # Search with automatic client-side fallback if payload field indexes are missing
+    try:
+        hits = client.query_points(
+            collection_name=COLLECTION_NAME,
+            query=query_vector,
+            query_filter=qdrant_filter,
+            limit=top_k if not qdrant_filter else top_k * 3,
+            with_payload=True,
+            score_threshold=0.3,
+        ).points
+    except Exception as e:
+        if "Index required but not found" in str(e) and qdrant_filter:
+            log.warning("Qdrant index missing for payload filter; performing client-side filtering fallback.")
+            raw_hits = client.query_points(
+                collection_name=COLLECTION_NAME,
+                query=query_vector,
+                limit=top_k * 4,
+                with_payload=True,
+                score_threshold=0.3,
+            ).points
+            hits = []
+            for h in raw_hits:
+                p = h.payload or {}
+                m = p.get("metadata", p)
+                if source_type and str(m.get("source_type", "")).lower() != source_type.lower():
+                    continue
+                if doc_name and doc_name.lower() not in str(m.get("document_name", "")).lower():
+                    continue
+                hits.append(h)
+                if len(hits) >= top_k:
+                    break
+        else:
+            raise e
 
-    # Normalise into clean dicts
+    # Normalise into clean dicts with length scrutiny
     results = []
+    seen_snippets = set()
     for hit in hits:
         payload  = hit.payload or {}
-        metadata = payload.get("metadata", payload)  
+        metadata = payload.get("metadata", payload)
+        raw_text = str(payload.get("page_content") or metadata.get("text", "")).strip()
+        if not raw_text:
+            continue
+
+        # Deduplicate identical or near-identical snippets
+        snippet_key = " ".join(raw_text.lower().split()[:15])
+        if snippet_key in seen_snippets:
+            continue
+        seen_snippets.add(snippet_key)
+
+        # Scrutinize chunk length to avoid prompt bloat
+        chunk_text = raw_text
+        if len(chunk_text) > 950:
+            last_period = chunk_text.rfind(".", 0, 950)
+            if last_period > 400:
+                chunk_text = chunk_text[:last_period + 1]
+            else:
+                chunk_text = chunk_text[:950].rstrip() + "..."
+
         results.append({
-            "text":          payload.get("page_content") or metadata.get("text", ""),
+            "text":          chunk_text,
             "document_name": metadata.get("document_name", "Unknown"),
             "source_type":   metadata.get("source_type", "unknown"),
             "year":          metadata.get("year", ""),

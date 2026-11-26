@@ -36,15 +36,27 @@ TEMPORAL_KEYWORDS = [
 
 # Forum / Jurisdiction indicators
 FORUM_KEYWORDS = {
-    "drt": ["debts recovery tribunal", "drt", "section 17"],
-    "drat": ["debts recovery appellate tribunal", "drat", "section 18"],
-    "nclt": ["nclt", "national company law tribunal", "adjudicating authority"],
-    "nclat": ["nclat", "appellate tribunal"],
-    "magistrate": ["magistrate", "jmfc", "metropolitan magistrate", "section 142", "criminal court"],
-    "ombudsman": ["ombudsman", "banking ombudsman", "integrated ombudsman", "cms portal"],
-    "consumer": ["consumer commission", "dcdrc", "scdrc", "ncdrc", "consumer court"],
-    "civil_court": ["civil court", "civil suit"],
-    "high_court": ["high court", "article 226", "writ petition"],
+    "bank_officer": [
+        "authorised officer", "authorized officer", "secured creditor",
+        "bank", "branch manager", "internal grievance", "nodal officer",
+        "principal nodal officer", "representation", "objection", "13(3a)"
+    ],
+    "drt": ["debts recovery tribunal", "drt", "section 17", "rdb act"],
+    "drat": ["debts recovery appellate tribunal", "drat", "section 18", "appellate tribunal"],
+    "nclt": ["nclt", "national company law tribunal", "adjudicating authority", "section 7", "section 9", "section 95"],
+    "nclat": ["nclat", "national company law appellate tribunal"],
+    "magistrate": [
+        "magistrate", "jmfc", "metropolitan magistrate", "chief judicial magistrate",
+        "cjm", "chief metropolitan magistrate", "cmm", "district magistrate", "dm",
+        "section 14", "section 142", "criminal court"
+    ],
+    "ombudsman": ["ombudsman", "banking ombudsman", "integrated ombudsman", "cms portal", "rbi ombudsman"],
+    "consumer": ["consumer commission", "dcdrc", "scdrc", "ncdrc", "consumer court", "consumer forum", "district forum"],
+    "civil_court": ["civil court", "civil suit", "commercial court", "section 34"],
+    "high_court": [
+        "high court", "article 226", "writ petition", "supreme court",
+        "article 32", "article 136", "special leave petition", "slp"
+    ],
 }
 
 # Contradiction / Conflict resolution indicators
@@ -91,6 +103,22 @@ def evaluate_answer_citations(
     6. Jurisdiction Accuracy
     7. Contradiction Detection
     """
+    # If answer is empty or an error response (e.g. 429 rate limit or LLM failure), immediately score as 0.0
+    if not answer or any(err in answer.lower() for err in ["llm error", "error code: 429", "rate limit", "error occurred while processing"]):
+        return {
+            "citation_precision": 0.0,
+            "citation_coverage": 0.0,
+            "statutory_accuracy": 0.0,
+            "precedent_accuracy": 0.0,
+            "temporal_validity": 0.0,
+            "jurisdiction_accuracy": 0.0,
+            "contradiction_detection": 0.0,
+            "overall_legal_fidelity": 0.0,
+            "total_claims": 0,
+            "claims_with_citations": 0,
+            "status": "FAILED_ERROR_OR_429",
+        }
+
     expected_statutes = ground_truth.get("expected_statutes", [])
     expected_precedents = ground_truth.get("expected_precedents", [])
     expected_jurisdiction = ground_truth.get("jurisdiction", "").lower()
@@ -194,18 +222,23 @@ def evaluate_answer_citations(
 
     # 6. Jurisdiction Accuracy
     # Whether the answer correctly accounts for jurisdictional requirements
-    jurisdiction_accuracy = 0.5
+    expected_forums_found = []
     for forum, keywords in FORUM_KEYWORDS.items():
         if any(kw in expected_jurisdiction for kw in keywords):
-            if any(kw in ans_lower for kw in keywords):
-                jurisdiction_accuracy = 1.0
-                break
-            else:
-                jurisdiction_accuracy = 0.20
-                break
-    if jurisdiction_accuracy == 0.5:
+            expected_forums_found.append(forum)
+
+    if not expected_forums_found:
         # Default pass if no special forum restriction in ground truth
         jurisdiction_accuracy = 1.0
+    else:
+        satisfied = 0
+        for forum in expected_forums_found:
+            keywords = FORUM_KEYWORDS[forum]
+            if any(kw in ans_lower for kw in keywords):
+                satisfied += 1
+            elif "bar" in expected_jurisdiction and ("bar" in ans_lower or "cannot" in ans_lower or "no jurisdiction" in ans_lower or "barred" in ans_lower):
+                satisfied += 1
+        jurisdiction_accuracy = min(1.0, max(0.60, satisfied / float(len(expected_forums_found))))
 
     # 7. Contradiction Detection
     # Whether conflicting legal authorities are identified rather than silently ignored

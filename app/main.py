@@ -82,10 +82,10 @@ class QueryResponse(BaseModel):
     citations: List[str]
     sources: List[SourceChunk]
     error: Optional[str] = None
+    latency: Optional[Dict[str, Any]] = None
 
 class EvaluationRunRequest(BaseModel):
     sample_limit: int = Field(default=30, ge=5, le=150)
-    mock_retrieval: bool = Field(default=False)
 
 # ── Routes: Core QA & Health ─────────────────────────────────
 
@@ -120,7 +120,7 @@ def query_endpoint(request: QueryRequest):
         history=history_dicts
     )
 
-    if result.get("error"):
+    if result.get("error") and not result.get("answer"):
         raise HTTPException(status_code=500, detail=result["error"])
 
     sources: List[SourceChunk] = []
@@ -145,6 +145,7 @@ def query_endpoint(request: QueryRequest):
         citations=result.get("citations", []),
         sources=sources,
         error=result.get("error"),
+        latency=result.get("latency"),
     )
 
 
@@ -164,7 +165,7 @@ def get_evaluation_summary():
     # If no report file exists yet, generate baseline summary
     if run_evaluation_pipeline is not None:
         try:
-            return run_evaluation_pipeline(sample_limit=20, mock_retrieval=True, output_reports=True)
+            return run_evaluation_pipeline(sample_limit=20, output_reports=True)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to compute evaluation baseline: {e}")
 
@@ -201,7 +202,6 @@ def trigger_evaluation_run(request: EvaluationRunRequest):
     try:
         report = run_evaluation_pipeline(
             sample_limit=request.sample_limit,
-            mock_retrieval=request.mock_retrieval,
             output_reports=True
         )
         return {
@@ -220,7 +220,7 @@ def get_evaluation_html_report():
     md_file = REPORTS_DIR / "benchmark_report.md"
     if not md_file.exists():
         if run_evaluation_pipeline is not None:
-            run_evaluation_pipeline(sample_limit=20, mock_retrieval=True, output_reports=True)
+            run_evaluation_pipeline(sample_limit=20, output_reports=True)
     if md_file.exists():
         raw_md = md_file.read_text(encoding="utf-8")
         html_content = f"""<!DOCTYPE html>
